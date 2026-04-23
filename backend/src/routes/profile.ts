@@ -5,10 +5,10 @@ import { AppError } from "../middleware/error";
 
 const router = Router();
 
-// GET /api/profile/me
+// GET /api/profile/me — returns all profiles for the current user
 router.get("/me", authenticate, async (req: AuthRequest, res: Response) => {
   const result = await query(
-    `SELECT p.*, 
+    `SELECT p.*,
        (SELECT json_agg(s ORDER BY s.sort_order) FROM profile_siblings s WHERE s.profile_id = p.id) as siblings,
        (SELECT json_agg(ph ORDER BY ph.sort_order) FROM profile_photos ph WHERE ph.profile_id = p.id) as photos,
        row_to_json(pe) as expectations,
@@ -16,25 +16,31 @@ router.get("/me", authenticate, async (req: AuthRequest, res: Response) => {
      FROM profiles p
      LEFT JOIN profile_expectations pe ON pe.profile_id = p.id
      LEFT JOIN astrology_details ad ON ad.profile_id = p.id
-     WHERE p.user_id = $1`,
+     WHERE p.user_id = $1
+     ORDER BY p.created_at ASC`,
     [req.userId]
   );
-  if (!result.rows[0]) return res.json(null);
-  res.json(result.rows[0]);
+  // Return array of profiles; callers that expected a single object can use [0]
+  res.json(result.rows);
 });
 
 // POST /api/profile/create — create or update profile (wizard step-by-step)
+// Pass `profileId` in the body to update a specific existing profile.
+// Omit `profileId` on step 1 to start a new profile.
 router.post("/create", authenticate, async (req: AuthRequest, res: Response) => {
-  const { step, data } = req.body;
+  const { step, data, profileId: bodyProfileId } = req.body;
   if (!step || !data) throw new AppError("Step and data required");
 
-  // Check existing
-  let profileRes = await query("SELECT id FROM profiles WHERE user_id = $1", [req.userId]);
   let profileId: string;
 
-  if (!profileRes.rows[0]) {
-    // Step 1 must come first
-    if (step !== 1) throw new AppError("Create profile from step 1");
+  if (bodyProfileId) {
+    // Verify the profile belongs to this user
+    const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [bodyProfileId, req.userId]);
+    if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+    profileId = bodyProfileId;
+  } else {
+    // No profileId supplied — step 1 creates a new profile
+    if (step !== 1) throw new AppError("Provide profileId to continue an existing profile, or start from step 1");
     const ins = await query(
       `INSERT INTO profiles (user_id, full_name, full_name_tamil, gender, date_of_birth,
         marital_status, mother_tongue, religion, wizard_step)
@@ -45,8 +51,6 @@ router.post("/create", authenticate, async (req: AuthRequest, res: Response) => 
        data.motherTongue || "Tamil", data.religion || "Hindu"]
     );
     profileId = ins.rows[0].id;
-  } else {
-    profileId = profileRes.rows[0].id;
   }
 
   // Update by step

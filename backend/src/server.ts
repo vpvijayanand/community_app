@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import fs from "fs";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -39,7 +40,11 @@ app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000", cred
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200 }));
-app.use("/uploads", express.static(process.env.UPLOAD_DIR || "./uploads"));
+// Allow cross-origin image loading (frontend is on a different port)
+app.use("/uploads", (_req, res, next) => {
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  next();
+}, express.static(process.env.UPLOAD_DIR || "./uploads"));
 
 // ── Routes ──
 app.get("/api/health", (_req, res) => {
@@ -62,6 +67,11 @@ app.use(errorHandler);
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
 async function start() {
+  // Ensure uploads directory exists
+  const uploadDir = process.env.UPLOAD_DIR || "./uploads";
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
   await testConnection();
   await runMigrations();
   server.listen(PORT, () => {

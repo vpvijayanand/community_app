@@ -2,7 +2,10 @@ import { Knex } from 'knex';
 import bcrypt from 'bcryptjs';
 
 export async function seed(knex: Knex): Promise<void> {
-  // Seed subscription plans first
+  // Clear all dependent tables in FK-safe order before re-seeding
+  await knex('news_posts').del();
+  await knex('ads').del();
+  await knex('user_subscriptions').del();
   await knex('subscription_plans').del();
   await knex('subscription_plans').insert([
     {
