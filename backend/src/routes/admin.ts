@@ -61,9 +61,11 @@ router.get("/users", async (req, res) => {
        COALESCE(
          (SELECT json_agg(json_build_object(
            'id', p.id,
+           'profile_number', p.profile_number,
            'full_name', p.full_name,
            'gender', p.gender,
            'status', p.status,
+           'is_closed', p.is_closed,
            'created_at', p.created_at,
            'city', p.city,
            'state', p.state
@@ -316,6 +318,35 @@ router.put("/profiles/:id/reject", async (req: AuthRequest, res: Response) => {
     [req.userId, req.params.id]
   );
   res.json({ message: "Profile rejected" });
+});
+
+// PUT /api/admin/profiles/:id/close
+router.put("/profiles/:id/close", async (req: AuthRequest, res: Response) => {
+  const { reason } = req.body;
+  await query(
+    `UPDATE profiles SET is_closed=true, closed_reason=$2, closed_at=NOW(), closed_by=$3, updated_at=NOW() WHERE id=$1`,
+    [req.params.id, reason || null, req.userId]
+  );
+  await query(
+    `INSERT INTO admin_audit_log (admin_user_id, action, target_type, target_id, details)
+     VALUES ($1, 'close_profile', 'profile', $2, $3)`,
+    [req.userId, req.params.id, JSON.stringify({ reason })]
+  );
+  res.json({ message: "Profile closed" });
+});
+
+// PUT /api/admin/profiles/:id/reopen
+router.put("/profiles/:id/reopen", async (req: AuthRequest, res: Response) => {
+  await query(
+    `UPDATE profiles SET is_closed=false, closed_reason=NULL, closed_at=NULL, closed_by=NULL, reopened_at=NOW(), updated_at=NOW() WHERE id=$1`,
+    [req.params.id]
+  );
+  await query(
+    `INSERT INTO admin_audit_log (admin_user_id, action, target_type, target_id)
+     VALUES ($1, 'reopen_profile', 'profile', $2)`,
+    [req.userId, req.params.id]
+  );
+  res.json({ message: "Profile reopened" });
 });
 
 // POST /api/admin/news

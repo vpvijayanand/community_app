@@ -269,4 +269,27 @@ router.post("/:id/interest", authenticate, async (req: AuthRequest, res: Respons
   res.json({ message: "Interest sent" });
 });
 
+// PUT /api/profile/:id/close — user closes their own profile
+router.put("/:id/close", authenticate, async (req: AuthRequest, res: Response) => {
+  const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [req.params.id, req.userId]);
+  if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+  const { reason } = req.body;
+  await query(
+    `UPDATE profiles SET is_closed=true, closed_reason=$2, closed_at=NOW(), closed_by=$3, updated_at=NOW() WHERE id=$1`,
+    [req.params.id, reason || null, req.userId]
+  );
+  res.json({ message: "Profile closed" });
+});
+
+// PUT /api/profile/:id/reopen — user reopens their own profile
+router.put("/:id/reopen", authenticate, async (req: AuthRequest, res: Response) => {
+  const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [req.params.id, req.userId]);
+  if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+  await query(
+    `UPDATE profiles SET is_closed=false, closed_reason=NULL, closed_at=NULL, closed_by=NULL, reopened_at=NOW(), updated_at=NOW() WHERE id=$1`,
+    [req.params.id]
+  );
+  res.json({ message: "Profile reopened" });
+});
+
 export default router;
