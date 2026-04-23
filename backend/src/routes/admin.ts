@@ -320,6 +320,116 @@ router.put("/profiles/:id/reject", async (req: AuthRequest, res: Response) => {
   res.json({ message: "Profile rejected" });
 });
 
+// GET /api/admin/profiles/:id/matches — find matching candidates for a profile
+router.get("/profiles/:id/matches", async (req: AuthRequest, res: Response) => {
+  const profileId = req.params.id;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = 20;
+  const offset = (page - 1) * limit;
+
+  // Load source profile with expectations and astrology
+  const srcRes = await query(
+    `SELECT p.*, pe.age_range_min, pe.age_range_max, pe.height_range_min, pe.height_range_max,
+       pe.minimum_poruthams, pe.food_pref, pe.education_pref, pe.location_pref,
+       ad.rasi_name as src_rasi, ad.natchathiram as src_star, ad.lagna_name as src_lagna,
+       EXTRACT(YEAR FROM age(p.date_of_birth))::int as src_age
+     FROM profiles p
+     LEFT JOIN profile_expectations pe ON pe.profile_id = p.id
+     LEFT JOIN astrology_details ad ON ad.profile_id = p.id
+     WHERE p.id = $1`,
+    [profileId]
+  );
+  const src = srcRes.rows[0];
+  if (!src) return res.status(404).json({ message: "Profile not found" });
+
+  const defaultGender = src.gender === "male" ? "female" : "male";
+  const genderFilter = (req.query.gender as string) || defaultGender;
+
+  let where = `p.status = 'approved' AND p.is_closed = false AND p.gender = $1 AND p.id != $2`;
+  const params: any[] = [genderFilter, profileId];
+  let idx = 3;
+
+  if (req.query.ageMin) { where += ` AND EXTRACT(YEAR FROM age(p.date_of_birth)) >= $${idx++}`; params.push(Number(req.query.ageMin)); }
+  if (req.query.ageMax) { where += ` AND EXTRACT(YEAR FROM age(p.date_of_birth)) <= $${idx++}`; params.push(Number(req.query.ageMax)); }
+  if (req.query.state)  { where += ` AND p.state ILIKE $${idx++}`; params.push(req.query.state); }
+  if (req.query.rasi)   { where += ` AND ad.rasi_name = $${idx++}`; params.push(req.query.rasi); }
+
+  const countRes = await query(
+    `SELECT COUNT(*) FROM profiles p
+     LEFT JOIN astrology_details ad ON ad.profile_id = p.id
+     WHERE ${where}`, params
+  );
+  const total = parseInt(countRes.rows[0].count);
+
+  const result = await query(
+    `SELECT p.id, p.profile_number, p.full_name, p.full_name_tamil, p.gender,
+       p.date_of_birth, p.height_cm, p.complexion, p.food_preference,
+       p.state, p.city, p.qualification, p.field_of_study, p.employment_type,
+       p.designation, p.religion, p.completeness_score,
+       ad.rasi_name, ad.natchathiram, ad.lagna_name,
+       pe.age_range_min as exp_age_min, pe.age_range_max as exp_age_max,
+       pe.height_range_min as exp_h_min, pe.height_range_max as exp_h_max,
+       pe.minimum_poruthams as exp_poruthams,
+       (SELECT ph.url FROM profile_photos ph WHERE ph.profile_id = p.id AND ph.is_primary = true LIMIT 1) as photo,
+       EXTRACT(YEAR FROM age(p.date_of_birth))::int as age
+     FROM profiles p
+     LEFT JOIN astrology_details ad ON ad.profile_id = p.id
+     LEFT JOIN profile_expectations pe ON pe.profile_id = p.id
+     WHERE ${where}
+     ORDER BY p.completeness_score DESC
+     LIMIT $${idx} OFFSET $${idx + 1}`,
+    [...params, limit, offset]
+  );
+
+  // Score each candidate out of 10
+  const srcAge: number | null = src.src_age;
+  const candidates = result.rows.map((c: any) => {
+    let score = 0;
+    const matchDetails: string[] = [];
+
+    // Age: candidate's age within source's expectation (2 pts)
+    if (src.age_range_min && src.age_range_max && c.age) {
+      if (c.age >= src.age_range_min && c.age <= src.age_range_max) { score += 2; matchDetails.push("Age within your expectation range"); }
+    } else { score += 1; matchDetails.push("Age (no preference set)"); }
+
+    // Source age within candidate's expectation (1 pt)
+    if (c.exp_age_min && c.exp_age_max && srcAge) {
+      if (srcAge >= c.exp_age_min && srcAge <= c.exp_age_max) { score += 1; matchDetails.push("Your age within their expectation"); }
+    }
+
+    // Height (1 pt — check both ways)
+    if (src.height_range_min && src.height_range_max && c.height_cm) {
+      if (c.height_cm >= src.height_range_min && c.height_cm <= src.height_range_max) { score += 1; matchDetails.push("Height within your preference"); }
+    } else if (c.exp_h_min && c.exp_h_max && src.height_cm) {
+      if (src.height_cm >= c.exp_h_min && src.height_cm <= c.exp_h_max) { score += 1; matchDetails.push("Your height within their preference"); }
+    }
+
+    // Religion (2 pts)
+    if (src.religion && c.religion && src.religion === c.religion) { score += 2; matchDetails.push("Same religion"); }
+
+    // Same state (1 pt)
+    if (src.state && c.state && src.state.toLowerCase() === c.state.toLowerCase()) { score += 1; matchDetails.push("Same state"); }
+
+    // Both have horoscope (2 pts)
+    if (src.src_rasi && c.rasi_name) { score += 2; matchDetails.push("Both have horoscope data"); }
+
+    // Food preference (1 pt)
+    if (src.food_preference && c.food_preference && src.food_preference === c.food_preference) { score += 1; matchDetails.push("Food preference compatible"); }
+
+    return { ...c, matchScore: Math.min(score, 10), matchTotal: 10, matchDetails };
+  });
+
+  candidates.sort((a: any, b: any) => b.matchScore - a.matchScore);
+
+  res.json({
+    sourceProfile: { id: src.id, full_name: src.full_name, gender: src.gender, profile_number: src.profile_number },
+    candidates,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  });
+});
+
 // PUT /api/admin/profiles/:id/close
 router.put("/profiles/:id/close", async (req: AuthRequest, res: Response) => {
   const { reason } = req.body;
