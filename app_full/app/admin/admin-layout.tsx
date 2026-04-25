@@ -8,14 +8,17 @@ import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const NAV = [
-  { href: "/admin",               label: "Dashboard"     },
-  { href: "/admin/users",         label: "Users"         },
-  { href: "/admin/profiles",      label: "Approvals"     },
-  { href: "/porutham",            label: "Porutham ✦"   },
-  { href: "/admin/news",          label: "News"          },
-  { href: "/admin/ads",           label: "Ads"           },
-  { href: "/admin/subscriptions", label: "Subscriptions" },
-  { href: "/admin/settings",      label: "Settings"      },
+  { href: "/admin",                   label: "Dashboard"      },
+  { href: "/admin/users",             label: "Users"          },
+  { href: "/admin/profiles",          label: "Approvals"      },
+  { href: "/admin/astrology",         label: "Astrology ✦"    },
+  { href: "/admin/astrology/history", label: "  ↳ History"    },
+  { href: "/porutham",                label: "Porutham ✦"    },
+  { href: "/admin/porutham/history",  label: "  ↳ History"    },
+  { href: "/admin/news",              label: "News"           },
+  { href: "/admin/ads",               label: "Ads"            },
+  { href: "/admin/subscriptions",     label: "Subscriptions"  },
+  { href: "/admin/settings",          label: "Settings"       },
 ]
 
 type Props = {

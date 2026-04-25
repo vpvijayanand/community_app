@@ -21,6 +21,8 @@ import newsRoutes from "./routes/news";
 import subscriptionRoutes from "./routes/subscription";
 import adminRoutes from "./routes/admin";
 import uploadRoutes from "./routes/upload";
+import astrologyRoutes from "./routes/astrology";
+import poruthamRoutes from "./routes/porutham";
 
 import { errorHandler } from "./middleware/error";
 import { setupSocket } from "./socket";
@@ -59,6 +61,8 @@ app.use("/api/news", newsRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/astrology", astrologyRoutes);
+app.use("/api/porutham", poruthamRoutes);
 
 // ── Error handler ──
 app.use(errorHandler);

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Maratha** is a full-stack Tamil matrimony/matchmaking platform with astrology compatibility matching. It is a monorepo with three packages:
 
-- `app_full/` — Next.js 15 frontend (React 19, App Router)
+- `app_full/` — Next.js 15 frontend (React 19, App Router)gcloud auth application-default login --add-quota-project-to-adc
 - `backend/` — Node.js/Express REST API + Socket.IO
 - `database/` — PostgreSQL schema definitions
 

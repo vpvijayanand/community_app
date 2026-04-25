@@ -5,14 +5,15 @@ import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { calcAllPorutham, NAKSHATRAS, RASIS, RASI_NAKSHATRAS, type PoruthItem } from "@/lib/porutham"
-import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, RotateCcw, Printer, X } from "lucide-react"
+import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, RotateCcw, Printer, X, History, Save } from "lucide-react"
+import { savePoruthamMatch } from "@/lib/porutham-api"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type PersonInput = {
-  name: string; dob: string; time: string; rasi: string; nak: string
+  name: string; dob: string; time: string; place: string; rasi: string; nak: string
 }
-const empty = (): PersonInput => ({ name: "", dob: "", time: "", rasi: "", nak: "" })
+const empty = (): PersonInput => ({ name: "", dob: "", time: "", place: "", rasi: "", nak: "" })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,10 @@ function PersonForm({ title, color, emoji, values, onChange }: {
         <Field label="Time of Birth">
           <input type="time" className={inputCls} value={values.time}
             onChange={e => onChange("time", e.target.value)} />
+        </Field>
+        <Field label="Place of Birth">
+          <input className={inputCls} placeholder="Enter city/town" value={values.place}
+            onChange={e => onChange("place", e.target.value)} />
         </Field>
         <Field label="Rasi (ராசி)">
           <select className={selectCls} value={values.rasi} onChange={e => handleRasiChange(e.target.value)}>
@@ -250,6 +255,7 @@ function ReportBody({ boy, girl, result, score, verdict, barColor, today, boyRas
                   ["Name", data.name || "—"],
                   ["Date of Birth", fmtDate(data.dob)],
                   ["Time of Birth", data.time || "—"],
+                  ["Place of Birth", data.place || "—"],
                   ["Rasi", rasi ? `${rasi.en} (${rasi.ta})` : "—"],
                   ["Natchatram", nak ? `${nak.en} (${nak.ta})` : "—"],
                 ].map(([k, v]) => (
@@ -349,23 +355,45 @@ export default function PoruthPage() {
   const [result,     setResult]     = useState<PoruthItem[] | null>(null)
   const [error,      setError]      = useState<string | null>(null)
   const [showReport, setShowReport] = useState(false)
+  const [savedId,    setSavedId]    = useState<string | null>(null)
+  const [isSaving,   setIsSaving]   = useState(false)
 
   function update(who: "boy" | "girl", k: keyof PersonInput, v: string) {
     if (who === "boy") setBoy(p => ({ ...p, [k]: v }))
     else               setGirl(p => ({ ...p, [k]: v }))
-    setResult(null); setShowReport(false)
+    setResult(null); setShowReport(false); setSavedId(null);
   }
 
-  function calculate() {
+  async function calculate() {
     if (!boy.nak || !boy.rasi || !girl.nak || !girl.rasi) {
       setError("Please select Rasi and Natchatram for both boy and girl.")
       return
     }
     setError(null)
-    setResult(calcAllPorutham(Number(girl.nak), Number(girl.rasi), Number(boy.nak), Number(boy.rasi)))
+    const matchingResult = calcAllPorutham(Number(girl.nak), Number(girl.rasi), Number(boy.nak), Number(boy.rasi))
+    setResult(matchingResult)
+    
+    // Attempt auto-save in background
+    setIsSaving(true)
+    try {
+      const saved = await savePoruthamMatch({
+        boyName: boy.name || "Groom", boyDob: boy.dob || new Date().toISOString().split('T')[0], boyTime: boy.time || "00:00", boyPlace: boy.place || "Not given",
+        girlName: girl.name || "Bride", girlDob: girl.dob || new Date().toISOString().split('T')[0], girlTime: girl.time || "00:00", girlPlace: girl.place || "Not given",
+        resultJson: {
+          items: matchingResult,
+          matchedCount: matchingResult.filter(p => !!p.match).length,
+          totalScore: 10
+        } as any
+      })
+      if (saved?.id) setSavedId(saved.id)
+    } catch (err) {
+      console.error("Auto-save failed", err)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  function reset() { setBoy(empty()); setGirl(empty()); setResult(null); setError(null); setShowReport(false) }
+  function reset() { setBoy(empty()); setGirl(empty()); setResult(null); setError(null); setShowReport(false); setSavedId(null); }
 
   const score = result ? result.filter(p => p.match).length : 0
 
@@ -428,6 +456,19 @@ export default function PoruthPage() {
               </>
             )}
           </div>
+
+          {/* Save Status Banner */}
+          {savedId && (
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <span>Result securely saved to your history!</span>
+              </div>
+              <Link href={`/porutham/history/${savedId}`} className="flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-900 transition underline underline-offset-4">
+                View in History
+              </Link>
+            </div>
+          )}
 
           {/* Results */}
           {result && (
