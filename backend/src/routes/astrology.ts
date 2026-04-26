@@ -49,13 +49,13 @@ router.get('/charts', authenticate, async (req: AuthRequest, res: Response, next
                 (result_json->>'pada')::int AS pada,
                 created_at
          FROM astrology_chart_history
-         WHERE user_id = $1
+         WHERE user_id = $1 AND deleted_at IS NULL
          ORDER BY created_at DESC
          LIMIT $2 OFFSET $3`,
         [req.userId, limit, offset]
       ),
       query(
-        'SELECT COUNT(*) FROM astrology_chart_history WHERE user_id = $1',
+        'SELECT COUNT(*) FROM astrology_chart_history WHERE user_id = $1 AND deleted_at IS NULL',
         [req.userId]
       ),
     ]);
@@ -84,7 +84,7 @@ router.get('/charts/:id', authenticate, async (req: AuthRequest, res: Response, 
       `SELECT id, user_id, name, gender, dob, time_of_birth, place_name,
               latitude, longitude, result_json, created_at
        FROM astrology_chart_history
-       WHERE id = $1`,
+       WHERE id = $1 AND deleted_at IS NULL`,
       [id]
     );
 
@@ -101,6 +101,39 @@ router.get('/charts/:id', authenticate, async (req: AuthRequest, res: Response, 
   }
 });
 
+// ─── DELETE /api/astrology/charts/:id  (soft delete) ─────────────────────────
+router.delete('/charts/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      throw new AppError('Invalid chart ID', 400);
+    }
+
+    // Fetch the chart first to verify ownership / admin
+    const existing = await query(
+      `SELECT id, user_id FROM astrology_chart_history WHERE id = $1 AND deleted_at IS NULL`,
+      [id]
+    );
+
+    if (!existing.rows[0]) throw new AppError('Chart not found', 404);
+
+    if (existing.rows[0].user_id !== req.userId && req.userRole !== 'admin') {
+      throw new AppError('Access denied', 403);
+    }
+
+    // Soft delete — set deleted_at timestamp
+    await query(
+      `UPDATE astrology_chart_history SET deleted_at = NOW() WHERE id = $1`,
+      [id]
+    );
+
+    res.json({ message: 'Chart deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── GET /api/astrology/admin/charts ─────────────────────────────────────────
 router.get('/admin/charts', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -109,7 +142,9 @@ router.get('/admin/charts', authenticate, requireAdmin, async (req: AuthRequest,
     const offset = (page - 1) * limit;
     const search = (req.query.search as string) || '';
 
-    const whereClause = search ? `WHERE (ach.name ILIKE $3 OR u.email ILIKE $3)` : '';
+    const whereClause = search
+      ? `WHERE ach.deleted_at IS NULL AND (ach.name ILIKE $3 OR u.email ILIKE $3)`
+      : `WHERE ach.deleted_at IS NULL`;
 
     const [rows, countResult] = await Promise.all([
       query(

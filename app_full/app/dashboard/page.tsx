@@ -47,6 +47,13 @@ export default function DashboardPage() {
   const router = useRouter()
   const { getProfilesByOwner, addProfile } = useProfilesStore()
 
+  // ── Redirect Admins ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (user?.role === "admin") {
+      router.push("/admin")
+    }
+  }, [user, router])
+
   // ── Demo Seeder ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (user?.email === "family@example.com") {

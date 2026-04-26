@@ -126,3 +126,18 @@ export async function adminListCharts(page = 1, limit = 50, search = ""): Promis
     return null
   }
 }
+
+/** Soft-delete a chart by ID (owner or admin only) */
+export async function deleteChart(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${BASE}/charts/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    })
+    if (res.ok) return { ok: true }
+    const body = await res.json().catch(() => ({}))
+    return { ok: false, error: (body as { message?: string })?.message || "Failed to delete chart" }
+  } catch {
+    return { ok: false, error: "Network error" }
+  }
+}

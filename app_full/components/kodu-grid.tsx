@@ -1,19 +1,17 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useState, memo } from "react"
+import { memo } from "react"
 import { 
   PlanetPosition, 
-  groupPlanetsByHouse, 
   getRasiName, 
   getPlanetTamilAbbr, 
-  rasiForHouse 
 } from "@/lib/astrology-utils"
 
 type KoduGridProps = {
   planetPositions: PlanetPosition[]
-  lagnaHouse: number
-  lagnaRasi?: number
+  lagnaHouse: number        // This is the RASI number of lagna (1-12)
+  lagnaRasi?: number        // Same as lagnaHouse — kept for compat
   mode?: 'rasi' | 'navamsa'
   isLoading?: boolean
   personName?: string
@@ -26,26 +24,41 @@ type KoduGridProps = {
 /** Size map for grid dimensions */
 const SIZE_MAP = { sm: 200, md: 280, lg: 360 } as const
 
-/** House number → CSS grid position (1-indexed) */
-const HOUSE_COORDS: Record<number, { r: number, c: number }> = {
-  1:  { r: 1, c: 2 },
-  2:  { r: 1, c: 3 },
-  3:  { r: 1, c: 4 },
-  4:  { r: 2, c: 4 },
-  5:  { r: 3, c: 4 },
-  6:  { r: 4, c: 4 },
-  7:  { r: 4, c: 3 },
-  8:  { r: 4, c: 2 },
-  9:  { r: 4, c: 1 },
-  10: { r: 3, c: 1 },
-  11: { r: 2, c: 1 },
-  12: { r: 1, c: 1 },
+/**
+ * South-Indian (Kodu) style horoscope grid.
+ *
+ * The grid has 12 fixed cells.  In South-Indian style the rasi labels
+ * DON'T rotate — Mesham is always in the top-row-second-col, etc.
+ * The LAGNA cell is just highlighted in red.
+ *
+ * Cell layout (South-Indian fixed positions):
+ *   col:  1        2        3        4
+ * row1  Meenam   Mesham  Rishabam  Mithunam
+ * row2  Kumbam   [CENTER------]    Kadagam
+ * row3  Magaram  [CENTER------]    Simmam
+ * row4  Dhanusu  Viruchigam Thulam  Kanni
+ *
+ * Rasi numbers: 1=Mesham…12=Meenam
+ * Grid position for rasi R:
+ */
+const RASI_TO_COORD: Record<number, { r: number; c: number }> = {
+  12: { r: 1, c: 1 },  // Meenam
+  1:  { r: 1, c: 2 },  // Mesham
+  2:  { r: 1, c: 3 },  // Rishabam
+  3:  { r: 1, c: 4 },  // Mithunam
+  11: { r: 2, c: 1 },  // Kumbam
+  4:  { r: 2, c: 4 },  // Kadagam
+  10: { r: 3, c: 1 },  // Magaram
+  5:  { r: 3, c: 4 },  // Simmam
+  9:  { r: 4, c: 1 },  // Dhanusu
+  8:  { r: 4, c: 2 },  // Viruchigam
+  7:  { r: 4, c: 3 },  // Thulam
+  6:  { r: 4, c: 4 },  // Kanni
 }
 
 /**
- * South-Indian style Horoscope Grid.
- * Exact 4x4 mapping with a merged 2x2 center.
- * House 1 is always Mesh (Aries) statically at row 0, col 1.
+ * South-Indian horoscope grid component.
+ * Renders planets in their absolute rasi cells (fixed grid — not rotating).
  */
 export const KoduGrid = memo(function KoduGrid({
   planetPositions = [],
@@ -56,20 +69,25 @@ export const KoduGrid = memo(function KoduGrid({
   personName,
   dob,
   size = 'md',
-  showToggle = true,
+  showToggle = false,
   onHouseClick,
 }: KoduGridProps) {
-  const [internalMode, setInternalMode] = useState<'rasi' | 'navamsa'>(mode)
-  const activeMode = internalMode
-  const grouped = groupPlanetsByHouse(planetPositions)
+
+  // The lagna rasi is whichever is set (lagnaRasi takes precedence for compat)
+  const lagnaRasiNum = lagnaRasi ?? lagnaHouse
+
+  // Group planets by their absolute rasi number
+  const grouped: Record<number, string[]> = {}
+  for (const pos of planetPositions) {
+    const r = pos.house  // house = rasi number in our calc
+    if (!grouped[r]) grouped[r] = []
+    grouped[r].push(pos.planet)
+  }
+
   const w = SIZE_MAP[size]
 
   return (
-    <div
-      style={{ width: w }}
-      role="img"
-      aria-label={personName ? `${personName} ஜாதக கட்டம்` : "ஜாதக கட்டம்"}
-    >
+    <div style={{ width: w }} role="img" aria-label={personName ? `${personName} ஜாதக கட்டம்` : "ஜாதக கட்டம்"}>
       {/* Grid */}
       <div
         style={{
@@ -82,17 +100,17 @@ export const KoduGrid = memo(function KoduGrid({
           width: "100%",
         }}
       >
-        {/* 12 house cells */}
-        {Object.entries(HOUSE_COORDS).map(([hStr, { r, c }]) => {
-          const h = parseInt(hStr, 10)
-          const planets = grouped[h] || []
-          const rasi = rasiForHouse(h, lagnaHouse, lagnaRasi)
-          const isLagna = h === lagnaHouse
+        {/* 12 rasi cells — fixed South-Indian positions */}
+        {(Object.keys(RASI_TO_COORD) as unknown as number[]).map((rasiStr) => {
+          const rasi = Number(rasiStr)
+          const { r, c } = RASI_TO_COORD[rasi]
+          const planets = grouped[rasi] || []
+          const isLagna = rasi === lagnaRasiNum
 
           return (
             <div
-              key={h}
-              onClick={() => onHouseClick?.(h, rasi)}
+              key={rasi}
+              onClick={() => onHouseClick?.(rasi, rasi)}
               role={onHouseClick ? "button" : undefined}
               tabIndex={onHouseClick ? 0 : undefined}
               style={{
@@ -110,72 +128,34 @@ export const KoduGrid = memo(function KoduGrid({
               }}
               onKeyDown={(e) => {
                 if (onHouseClick && (e.key === 'Enter' || e.key === ' ')) {
-                  e.preventDefault();
-                  onHouseClick(h, rasi);
+                  e.preventDefault()
+                  onHouseClick(rasi, rasi)
                 }
               }}
             >
               {isLoading ? (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 2,
-                    background: "#F0C8C0",
-                    animation: "shimmer 1.5s ease-in-out infinite",
-                  }}
-                />
+                <div style={{ width: "100%", height: "100%", borderRadius: 2, background: "#F0C8C0", animation: "shimmer 1.5s ease-in-out infinite" }} />
               ) : (
                 <>
-                  {/* House number */}
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 2,
-                      left: 3,
-                      fontSize: 9,
-                      color: "#7A3A3A",
-                      opacity: 0.7,
-                    }}
-                  >
-                    {h}
+                  {/* Rasi number (small, top-left) */}
+                  <span style={{ position: "absolute", top: 2, left: 3, fontSize: 8, color: "#7A3A3A", opacity: 0.6 }}>
+                    {rasi}
                   </span>
 
-                  {/* Planets */}
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 2,
-                    }}
-                  >
-                    {planets.map((p, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "bold",
-                          color: "#CD1C18",
-                        }}
-                      >
-                        {getPlanetTamilAbbr(p)}
-                      </span>
-                    ))}
+                  {/* Planet abbreviations */}
+                  <div style={{ flex: 1, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 2, paddingTop: 8 }}>
+                    {planets.map((p, i) => {
+                      const isLa = p === "La"
+                      return (
+                        <span key={i} style={{ fontSize: size === "sm" ? 10 : 12, fontWeight: "bold", color: isLa ? "#059669" : "#CD1C18" }}>
+                          {getPlanetTamilAbbr(p)}{i < planets.length - 1 ? " ," : ""}
+                        </span>
+                      )
+                    })}
                   </div>
 
-                  {/* Rasi name */}
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: 2,
-                      left: 3,
-                      fontSize: 8,
-                      color: "#7A3A3A",
-                    }}
-                  >
+                  {/* Rasi name (small, bottom-left) */}
+                  <span style={{ position: "absolute", bottom: 2, left: 3, fontSize: size === "sm" ? 7 : 8, color: "#7A3A3A" }}>
                     {getRasiName(rasi)}
                   </span>
                 </>
@@ -195,31 +175,16 @@ export const KoduGrid = memo(function KoduGrid({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
+            gap: 2,
           }}
         >
           {isLoading ? (
-            <div
-              style={{
-                width: "60%",
-                height: 14,
-                borderRadius: 2,
-                background: "#F0C8C0",
-                animation: "shimmer 1.5s ease-in-out infinite",
-              }}
-            />
+            <div style={{ width: "60%", height: 14, borderRadius: 2, background: "#F0C8C0", animation: "shimmer 1.5s ease-in-out infinite" }} />
           ) : (
             <>
-              <span style={{ fontSize: 11, color: "#CD1C18", fontWeight: 500 }}>
-                ஜாதகம்
-              </span>
-              {personName && (
-                <span style={{ fontSize: 10, color: "#1A0203" }}>
-                  {personName}
-                </span>
-              )}
-              {dob && (
-                <span style={{ fontSize: 9, color: "#7A3A3A" }}>{dob}</span>
-              )}
+              <span style={{ fontSize: 11, color: "#CD1C18", fontWeight: 500, fontFamily: "serif" }}>ஜாதகம்</span>
+              {personName && <span style={{ fontSize: 10, color: "#1A0203" }}>{personName}</span>}
+              {dob && <span style={{ fontSize: 9, color: "#7A3A3A" }}>{dob}</span>}
             </>
           )}
         </div>
@@ -227,41 +192,6 @@ export const KoduGrid = memo(function KoduGrid({
 
       {/* Shimmer keyframes */}
       <style>{`@keyframes shimmer{0%,100%{opacity:.5}50%{opacity:1}}`}</style>
-
-      {/* Toggle pills */}
-      {showToggle && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 0,
-            marginTop: 8,
-          }}
-        >
-          {(["rasi", "navamsa"] as const).map((m) => {
-            const active = activeMode === m
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setInternalMode(m)}
-                style={{
-                  padding: "4px 14px",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  borderRadius: 999,
-                  cursor: "pointer",
-                  border: active ? "none" : "0.5px solid #F0C8C0",
-                  background: active ? "#CD1C18" : "transparent",
-                  color: active ? "#fff" : "#7A3A3A",
-                }}
-              >
-                {m === "rasi" ? "ராசி" : "நவாம்சம்"}
-              </button>
-            )
-          })}
-        </div>
-      )}
     </div>
   )
 })
