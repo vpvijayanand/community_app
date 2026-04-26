@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin/profiles",          label: "Approvals"      },
   { href: "/admin/astrology",         label: "Astrology ✦"    },
   { href: "/admin/astrology/history", label: "  ↳ History"    },
+  { href: "/admin/astrology/deleted", label: "  ↳ Deleted"    },
   { href: "/porutham",                label: "Porutham ✦"    },
   { href: "/admin/porutham/history",  label: "  ↳ History"    },
   { href: "/admin/news",              label: "News"           },

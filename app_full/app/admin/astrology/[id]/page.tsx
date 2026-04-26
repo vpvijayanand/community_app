@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { AdminLayout } from "@/app/admin/admin-layout"
 import { AstrologyChartResult } from "@/components/astrology/astrology-chart-result"
+import { DetailedPredictionView } from "@/components/astrology/detailed-prediction-view"
 import { AstrologyChartPrintView } from "@/components/astrology/astrology-print-view"
 import { getChart, type ChartDetail } from "@/lib/astrology-api"
 import { ArrowLeft, Printer, History } from "lucide-react"
@@ -13,6 +14,7 @@ export default function AdminAstrologyChartDetailPage({ params }: { params: Prom
   const [chart, setChart] = useState<ChartDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<"chart" | "prediction">("chart")
 
   useEffect(() => {
     getChart(id).then((data) => {
@@ -90,11 +92,44 @@ export default function AdminAstrologyChartDetailPage({ params }: { params: Prom
             <span>🕒 Created: {new Date(chart.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
           </div>
 
-          <AstrologyChartResult
-            result={chart.result_json}
-            name={chart.name}
-            dob={chart.dob}
-          />
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center justify-center rounded-lg border border-border bg-card p-1 shadow-sm">
+              <button
+                onClick={() => setViewMode("chart")}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === "chart"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                Astrology Chart (ஜாதகம்)
+              </button>
+              <button
+                onClick={() => setViewMode("prediction")}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === "prediction"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                Detailed Prediction (விரிவான பலன்கள்)
+              </button>
+            </div>
+          </div>
+
+          {viewMode === "chart" ? (
+            <AstrologyChartResult
+              result={chart.result_json}
+              name={chart.name}
+              dob={chart.dob}
+            />
+          ) : chart.result_json.predictions ? (
+            <DetailedPredictionView data={chart.result_json.predictions} />
+          ) : (
+            <div className="text-center p-12 bg-secondary/20 rounded-xl border border-dashed border-border">
+              <p className="text-muted-foreground">Detailed predictions are not available for this legacy chart.</p>
+            </div>
+          )}
         </AdminLayout>
       </div>
 

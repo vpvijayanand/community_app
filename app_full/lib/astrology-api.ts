@@ -113,10 +113,11 @@ export async function getChart(id: string): Promise<ChartDetail | null> {
 }
 
 /** Admin: list ALL charts from all users */
-export async function adminListCharts(page = 1, limit = 50, search = ""): Promise<ChartListResponse | null> {
+export async function adminListCharts(page = 1, limit = 50, search = "", isDeleted = false): Promise<ChartListResponse | null> {
   try {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) })
     if (search) params.set("search", search)
+    if (isDeleted) params.set("isDeleted", "true")
     const res = await fetch(`${BASE}/admin/charts?${params}`, {
       headers: authHeaders(),
     })

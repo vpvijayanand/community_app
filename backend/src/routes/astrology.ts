@@ -141,10 +141,15 @@ router.get('/admin/charts', authenticate, requireAdmin, async (req: AuthRequest,
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
     const offset = (page - 1) * limit;
     const search = (req.query.search as string) || '';
+    const isDeleted = req.query.isDeleted === 'true';
+
+    const whereBase = isDeleted 
+      ? `WHERE ach.deleted_at IS NOT NULL`
+      : `WHERE ach.deleted_at IS NULL`;
 
     const whereClause = search
-      ? `WHERE ach.deleted_at IS NULL AND (ach.name ILIKE $3 OR u.email ILIKE $3)`
-      : `WHERE ach.deleted_at IS NULL`;
+      ? `${whereBase} AND (ach.name ILIKE $3 OR u.email ILIKE $3)`
+      : whereBase;
 
     const [rows, countResult] = await Promise.all([
       query(

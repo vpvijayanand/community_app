@@ -9,6 +9,8 @@
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+import { generatePredictions, type DetailedPrediction } from "./jyotish-predictions"
+
 export interface BirthInput {
   name: string
   gender: "male" | "female" | "other"
@@ -97,6 +99,9 @@ export interface JyotishResult {
   rasiLordEnglish: string
   lagnaLordTamil: string
   lagnaLordEnglish: string
+
+  // ── Auto-generated textual predictions ─────────────────────────────────────
+  predictions?: DetailedPrediction
 }
 
 // ─── Static Data ─────────────────────────────────────────────────────────────
@@ -687,7 +692,7 @@ export function calcJyotishChart(input: BirthInput): JyotishResult {
   const rasiLordCode = RASI_NAMES[moonRasi].lordCode
   const lagnaLordCode = RASI_NAMES[lagnamRasi].lordCode
 
-  return {
+  const result: JyotishResult = {
     moonRasi,
     moonRasiTamil: RASI_NAMES[moonRasi].tamil,
     moonRasiEnglish: RASI_NAMES[moonRasi].english,
@@ -734,6 +739,11 @@ export function calcJyotishChart(input: BirthInput): JyotishResult {
     lagnaLordTamil: PLANET_TAMIL_SHORT[lagnaLordCode] || lagnaLordCode,
     lagnaLordEnglish: PLANET_META[lagnaLordCode]?.english.split(" /")[0] || lagnaLordCode,
   }
+
+  // 12. Attach detailed predictions
+  result.predictions = generatePredictions(result, input.gender)
+
+  return result
 }
 
 // ─── Tamil Nadu City Geocode Table ────────────────────────────────────────────
