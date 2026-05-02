@@ -33,40 +33,40 @@ const DEV_PRESETS = [
   },
   {
     key: "groom" as const,
-    label: "Groom",
+    label: "Groom (DB)",
     tamil: "மணமகன்",
-    email: "arun@example.com",
-    password: "Groom@123",
+    email: "user1@example.com",
+    password: "User@1234",
     icon: User,
     color: "text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-500",
     activeBg: "bg-blue-50 border-blue-500 dark:bg-blue-950/30",
   },
   {
     key: "bride" as const,
-    label: "Bride",
+    label: "Bride (DB)",
     tamil: "மணமகள்",
-    email: "meera@example.com",
-    password: "Bride@123",
+    email: "user2@example.com",
+    password: "User@1234",
     icon: Users,
     color: "text-pink-600 border-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-500",
     activeBg: "bg-pink-50 border-pink-500 dark:bg-pink-950/30",
   },
   {
     key: "normal" as const,
-    label: "Normal User",
+    label: "User 3 (DB)",
     tamil: "பயனர்",
-    email: "test@example.com",
-    password: "User@123",
+    email: "user3@example.com",
+    password: "User@1234",
     icon: Zap,
     color: "text-slate-600 border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-500",
     activeBg: "bg-slate-50 border-slate-500 dark:bg-slate-800",
   },
   {
     key: "parent" as const,
-    label: "Family Demo",
+    label: "User 4 (DB)",
     tamil: "பெற்றோர்",
-    email: "family@example.com",
-    password: "Family@123",
+    email: "user4@example.com",
+    password: "User@1234",
     icon: Users,
     color: "text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-500",
     activeBg: "bg-purple-50 border-purple-500 dark:bg-purple-950/30",
@@ -94,15 +94,15 @@ export default function LoginPage() {
   }
 
   // One-click sign in as preset (skips form submit)
-  const handleQuickLogin = (preset: typeof DEV_PRESETS[number]) => {
-    const result = loginAs(preset.key)
+  const handleQuickLogin = async (preset: typeof DEV_PRESETS[number]) => {
+    const result = await loginAs(preset.key)
     if (result.success) router.push(result.destination)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    const result = login(email, password)
+    const result = await login(email, password)
     if (result.success) {
       router.push(result.destination)
     } else {

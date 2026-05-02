@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { SiteHeader } from "@/components/site-header"
+import { UserLayout } from "@/components/user-layout"
 import { ChatSubscriptionGate } from "@/components/chat/chat-subscription-gate"
 import { ChatLimitBanner } from "@/components/chat/chat-limit-banner"
 import { ConversationList } from "@/components/chat/conversation-list"
@@ -20,12 +20,9 @@ export default function ChatPage() {
   const isBasicUser = CURRENT_USER_SUBSCRIPTION === "basic"
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <SiteHeader />
-
+    <UserLayout title="Messages">
       {/* Full-height chat shell */}
-      <div className="relative flex flex-1 overflow-hidden"
-        style={{ height: "calc(100dvh - 64px)" }}>
+      <div className="relative flex overflow-hidden" style={{ height: "calc(100dvh - 120px)" }}>
 
         {isBasicUser ? (
           <ChatSubscriptionGate />
@@ -58,6 +55,6 @@ export default function ChatPage() {
           </>
         )}
       </div>
-    </div>
+    </UserLayout>
   )
 }

@@ -1,8 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft, Download, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { PartnerChartCard } from "@/components/partner-chart-card"
 import { MatchScoreGauge } from "@/components/match-score-gauge"
 import { PoruthamTable } from "@/components/porutham-table"
@@ -18,18 +17,14 @@ import {
 
 export default function AstrologyPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader />
-
-      <main className="flex-1">
+    <UserLayout>
+      <div className="flex min-h-screen flex-col bg-background">
         <PageHeader />
         <CompatibilitySection />
         <PoruthamSection />
         <Disclaimer />
-      </main>
-
-      <SiteFooter />
-    </div>
+      </div>
+    </UserLayout>
   )
 }
 

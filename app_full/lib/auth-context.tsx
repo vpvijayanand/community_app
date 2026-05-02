@@ -29,11 +29,11 @@ type AuthContextValue = {
   login: (
     email: string,
     password: string
-  ) => { success: boolean; destination: string; error?: string }
-  loginAs: (preset: "admin" | "groom" | "bride" | "normal" | "parent") => {
+  ) => Promise<{ success: boolean; destination: string; error?: string }>
+  loginAs: (preset: "admin" | "groom" | "bride" | "normal" | "parent") => Promise<{
     success: boolean
     destination: string
-  }
+  }>
   register: (
     data: { firstName: string; lastName: string; email: string; phone: string }
   ) => { success: boolean; destination: string }
@@ -97,27 +97,39 @@ const DUMMY_USERS: Record<
       managedProfileIds: [],
     },
   },
-  "parent@example.com": {
-    password: "Parent@123",
-    destination: "/dashboard",
-    user: {
-      role: "parent",
-      email: "parent@example.com",
-      phone: "9111111111",
-      firstName: "Sivaram",
-      lastName: "Iyer",
-      managedProfileIds: ["u001", "u002"],
-    },
-  },
   "family@example.com": {
     password: "Family@123",
     destination: "/dashboard",
     user: {
-      role: "parent",
+      role: "normal",
       email: "family@example.com",
       phone: "9888877777",
-      firstName: "Sivaram",
-      lastName: "Kumar",
+      firstName: "Family",
+      lastName: "Demo",
+      managedProfileIds: [],
+    },
+  },
+  "user1@example.com": {
+    password: "User@1234",
+    destination: "/dashboard",
+    user: {
+      role: "groom",
+      email: "user1@example.com",
+      phone: "9123456781",
+      firstName: "Murugan",
+      lastName: "K",
+      managedProfileIds: [],
+    },
+  },
+  "user2@example.com": {
+    password: "User@1234",
+    destination: "/dashboard",
+    user: {
+      role: "bride",
+      email: "user2@example.com",
+      phone: "9123456782",
+      firstName: "Kavitha",
+      lastName: "S",
       managedProfileIds: [],
     },
   },
@@ -125,9 +137,9 @@ const DUMMY_USERS: Record<
 
 const PRESET_EMAIL: Record<"admin" | "groom" | "bride" | "normal" | "parent", string> = {
   admin: "admin@mathat.in",
-  groom: "arun@example.com",
-  bride: "meera@example.com",
-  normal: "test@example.com",
+  groom: "user1@example.com",
+  bride: "user2@example.com",
+  normal: "user3@example.com",
   parent: "family@example.com"
 }
 
@@ -139,11 +151,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
 
   const login = useCallback(
-    (
+    async (
       email: string,
       password: string
-    ): { success: boolean; destination: string; error?: string } => {
-      const record = DUMMY_USERS[email.toLowerCase().trim()]
+    ): Promise<{ success: boolean; destination: string; error?: string }> => {
+      const emailKey = email.toLowerCase().trim()
+
+      // ── 1. Try real backend first ──────────────────────────────────────────
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailKey, password }),
+        })
+        const data = await res.json()
+        if (res.ok && data.token) {
+          // Backend auth succeeded — build session from backend response
+          if (typeof window !== "undefined") {
+            localStorage.setItem("maratha_token", data.token)
+            if (data.refreshToken) localStorage.setItem("maratha_refresh_token", data.refreshToken)
+          }
+          // Build AuthUser from backend payload
+          const backendUser: AuthUser = {
+            role: data.user?.role === "admin" ? "admin" : "normal",
+            email: emailKey,
+            phone: data.user?.phone ?? "",
+            firstName: data.user?.firstName ?? emailKey.split("@")[0],
+            lastName: data.user?.lastName ?? "",
+            managedProfileIds: [],
+          }
+          setUser(backendUser)
+          if (typeof window !== "undefined") {
+            localStorage.setItem("maratha_user_session", JSON.stringify(backendUser))
+          }
+          const destination = backendUser.role === "admin" ? "/admin" : "/dashboard"
+          return { success: true, destination }
+        }
+        // Backend returned an error — if it's 401/400 with a message, surface it
+        if (data.message) {
+          return { success: false, destination: "/login", error: data.message }
+        }
+      } catch {
+        // Backend unreachable — fall through to DUMMY_USERS
+      }
+
+      // ── 2. Fallback: DUMMY_USERS (for local dev / backend down) ───────────
+      const record = DUMMY_USERS[emailKey]
       if (!record) {
         return {
           success: false,
@@ -162,20 +215,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.setItem("maratha_user_session", JSON.stringify(record.user))
       }
-      // Authenticate against real backend to get JWT for API calls
-      fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (typeof window !== "undefined") {
-            if (data.token) localStorage.setItem("maratha_token", data.token)
-            if (data.refreshToken) localStorage.setItem("maratha_refresh_token", data.refreshToken)
-          }
-        })
-        .catch(() => {})
       return { success: true, destination: record.destination }
     },
     []
@@ -203,30 +242,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** One-click preset login for dev autofill buttons */
   const loginAs = useCallback(
-    (
+    async (
       preset: "admin" | "groom" | "bride" | "normal" | "parent"
-    ): { success: boolean; destination: string } => {
+    ): Promise<{ success: boolean; destination: string }> => {
       const email = PRESET_EMAIL[preset]
       const record = DUMMY_USERS[email]
-      setUser(record.user)
-      if (typeof window !== "undefined") {
-        localStorage.setItem("maratha_user_session", JSON.stringify(record.user))
-      }
-      // Authenticate against real backend to get JWT for API calls
-      fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: record.password }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (typeof window !== "undefined") {
-            if (data.token) localStorage.setItem("maratha_token", data.token)
-            if (data.refreshToken) localStorage.setItem("maratha_refresh_token", data.refreshToken)
+
+      if (record) {
+        // Authenticate against real backend to get JWT for API calls
+        try {
+          const res = await fetch("http://localhost:5000/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: record.password }),
+          })
+          const data = await res.json()
+          if (res.ok && data.token) {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("maratha_token", data.token)
+              if (data.refreshToken) localStorage.setItem("maratha_refresh_token", data.refreshToken)
+            }
           }
-        })
-        .catch(() => {})
-      return { success: true, destination: record.destination }
+        } catch (e) {
+          console.error("Quick login backend sync failed", e)
+        }
+
+        setUser(record.user)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("maratha_user_session", JSON.stringify(record.user))
+        }
+        return { success: true, destination: record.destination }
+      }
+      return { success: false, destination: "/login" }
     },
     []
   )

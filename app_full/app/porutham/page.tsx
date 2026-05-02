@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { calcAllPorutham, NAKSHATRAS, RASIS, RASI_NAKSHATRAS, type PoruthItem } from "@/lib/porutham"
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, RotateCcw, Printer, X, History, Save } from "lucide-react"
 import { savePoruthamMatch } from "@/lib/porutham-api"
@@ -399,7 +398,7 @@ export default function PoruthPage() {
 
   return (
     <>
-      <SiteHeader />
+      <UserLayout>
 
       <main className="min-h-screen bg-background">
         {/* Hero */}
@@ -534,7 +533,7 @@ export default function PoruthPage() {
         </div>
       </main>
 
-      <SiteFooter />
+      </UserLayout>
 
       {/* Print report modal */}
       {showReport && result && (

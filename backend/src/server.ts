@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import "express-async-errors";
 
 import fs from "fs";
 import express from "express";
