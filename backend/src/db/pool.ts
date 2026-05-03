@@ -2,7 +2,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.join(process.cwd(), ".env") });
+dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 console.log('DB Config:', {
   host: process.env.DB_HOST,

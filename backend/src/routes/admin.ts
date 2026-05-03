@@ -8,19 +8,10 @@ import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
 const router = Router();
 router.use(authenticate, requireAdmin);
 
-const uploadDir = process.env.UPLOAD_DIR || "./uploads";
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => cb(null, `${uuid()}${path.extname(file.originalname)}`),
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || "5242880") },
-  fileFilter: (_req, file, cb) => {
-    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) cb(null, true);
-    else cb(new Error("Only JPEG, PNG, WebP allowed") as any, false);
-  },
-});
+import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
+import { upload } from "../middleware/upload";
+
+const router = Router();
 
 // GET /api/admin/stats
 router.get("/stats", async (_req, res) => {

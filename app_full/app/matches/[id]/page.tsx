@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Heart, MapPin, Star, Loader2, AlertCircle, GraduationCap, Briefcase, Ruler } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Heart, MapPin, Star, Loader2, AlertCircle, GraduationCap, Briefcase, Ruler, Eye } from "lucide-react"
 import { UserLayout } from "@/components/user-layout"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -249,7 +249,7 @@ export default function MatchDetailPage() {
             )}
 
             {/* CTAs */}
-            <div className="mt-6 flex flex-wrap items-center gap-2">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={sendInterest}
@@ -257,6 +257,16 @@ export default function MatchDetailPage() {
               >
                 <Heart className="mr-2 h-4 w-4" />
                 {interestSent ? "Interest Sent!" : "Express Interest"}
+              </Button>
+              <Button
+                variant="outline"
+                asChild
+                className="border-primary text-primary hover:bg-primary/5"
+              >
+                <Link href={`/profile/${profile.id}/view`}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Full Profile
+                </Link>
               </Button>
             </div>
           </div>

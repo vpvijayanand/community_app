@@ -153,6 +153,11 @@ router.get("/", authenticate, async (req: AuthRequest, res: Response) => {
     params.push(req.query.bodyType);
     paramIdx++;
   }
+  if (req.query.incomeMin) {
+    filterClause += ` AND p.annual_income >= $${paramIdx}`;
+    params.push(parseInt(req.query.incomeMin as string));
+    paramIdx++;
+  }
   if (req.query.onlyVerified === "true") {
     filterClause += ` AND p.is_verified = true`;
   }
@@ -177,6 +182,7 @@ router.get("/", authenticate, async (req: AuthRequest, res: Response) => {
   const result = await query(
     `SELECT p.id, p.full_name, p.full_name_tamil, p.gender, p.date_of_birth,
        p.height_cm, p.complexion, p.food_preference, p.marital_status,
+       p.religion, p.mother_tongue, p.annual_income,
        p.state, p.city, p.qualification, p.employment_type,
        p.completeness_score, p.is_verified,
        ad.rasi_name, ad.natchathiram,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Eye, CheckCircle, XCircle, Clock, Search, RefreshCw } from "lucide-react"
+import { Eye, CheckCircle, XCircle, Clock, Search, RefreshCw, PencilLine, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AdminLayout } from "../admin-layout"
 import { apiFetch, apiFetchWithRetry } from "@/lib/api"
@@ -229,8 +229,13 @@ export default function AdminProfilesPage() {
                 {/* Actions */}
                 <div className="flex gap-2 flex-shrink-0 sm:ml-2 flex-wrap">
                   <Link href={`/admin/profiles/${p.id}`}>
+                    <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-secondary flex items-center gap-1.5">
+                      <PencilLine className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                  </Link>
+                  <Link href={`/profile/${p.id}/view`}>
                     <Button size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10 flex items-center gap-1.5">
-                      <Eye className="h-3.5 w-3.5" /> View & Edit
+                      <FileText className="h-3.5 w-3.5" /> View Premium
                     </Button>
                   </Link>
                   {p.status !== "approved" && (

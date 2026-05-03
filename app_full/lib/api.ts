@@ -2,13 +2,20 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 export async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("maratha_token") : null
+  
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string> | undefined),
+  }
+
+  // Only set application/json if body is not FormData
+  if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json"
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers as Record<string, string> | undefined),
-    },
+    headers,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

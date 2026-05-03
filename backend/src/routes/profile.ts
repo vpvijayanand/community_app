@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { query } from "../db/pool";
 import { authenticate, AuthRequest } from "../middleware/auth";
 import { AppError } from "../middleware/error";
+import { upload } from "../middleware/upload";
 
 const router = Router();
 
@@ -204,8 +205,8 @@ router.get("/:id", authenticate, async (req: AuthRequest, res: Response) => {
      FROM profiles p
      LEFT JOIN profile_expectations pe ON pe.profile_id = p.id
      LEFT JOIN astrology_details ad ON ad.profile_id = p.id
-     WHERE p.id = $1 AND p.status = 'approved'`,
-    [id]
+     WHERE p.id = $1 AND (p.status = 'approved' OR p.user_id = $2)`,
+    [id, req.userId]
   );
   if (!result.rows[0]) throw new AppError("Profile not found", 404);
 
@@ -290,6 +291,143 @@ router.put("/:id/reopen", authenticate, async (req: AuthRequest, res: Response) 
     [req.params.id]
   );
   res.json({ message: "Profile reopened" });
+});
+
+// PUT /api/profile/:id — update profile sections (ownership enforced)
+router.put("/:id", authenticate, async (req: AuthRequest, res: Response) => {
+  const pid = req.params.id;
+  // Ownership check (Admins bypass)
+  if (req.role !== "admin") {
+    const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [pid, req.userId]);
+    if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+  }
+
+  const { section, data } = req.body;
+
+  switch (section) {
+    case "basic":
+      await query(
+        `UPDATE profiles SET full_name=$2, full_name_tamil=$3, date_of_birth=$4, gender=$5,
+         marital_status=$6, mother_tongue=$7, religion=$8, height_cm=$9, weight_kg=$10,
+         complexion=$11, food_preference=$12, body_type=$13, physical_disability=$14, updated_at=NOW()
+         WHERE id=$1`,
+        [pid, data.full_name, data.full_name_tamil, data.date_of_birth, data.gender,
+         data.marital_status, data.mother_tongue, data.religion, data.height_cm || null, data.weight_kg || null,
+         data.complexion, data.food_preference, data.body_type, data.physical_disability]
+      );
+      break;
+    case "career":
+      await query(
+        `UPDATE profiles SET employment_type=$2, company_name=$3, designation=$4,
+         work_location=$5, annual_income=$6, qualification=$7, field_of_study=$8,
+         institution=$9, graduation_year=$10, updated_at=NOW() WHERE id=$1`,
+        [pid, data.employment_type, data.company_name, data.designation,
+         data.work_location, data.annual_income || null, data.qualification,
+         data.field_of_study, data.institution, data.graduation_year || null]
+      );
+      break;
+    case "family":
+      await query(
+        `UPDATE profiles SET family_type=$2, family_status=$3, family_values=$4,
+         father_name=$5, father_occupation=$6, father_alive=$7,
+         mother_name=$8, mother_occupation=$9, mother_alive=$10,
+         country=$11, state=$12, city=$13, area=$14, native_place=$15, willing_to_relocate=$16,
+         updated_at=NOW() WHERE id=$1`,
+        [pid, data.family_type, data.family_status, data.family_values,
+         data.father_name, data.father_occupation,
+         data.father_alive === "yes" ? true : data.father_alive === "no" ? false : null,
+         data.mother_name, data.mother_occupation,
+         data.mother_alive === "yes" ? true : data.mother_alive === "no" ? false : null,
+         data.country, data.state, data.city, data.area, data.native_place,
+         data.willing_to_relocate === "yes" ? true : data.willing_to_relocate === "no" ? false : null]
+      );
+      break;
+    case "astrology":
+      await query(
+        `INSERT INTO astrology_details
+           (profile_id, date_of_birth, birth_time, birth_am_pm, birth_place, lagna_name, rasi_name, natchathiram, padam, rasi_chart, navamsa_chart)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (profile_id) DO UPDATE SET
+           birth_time=$3, birth_am_pm=$4, birth_place=$5, lagna_name=$6,
+           rasi_name=$7, natchathiram=$8, padam=$9, rasi_chart=$10, navamsa_chart=$11, updated_at=NOW()`,
+        [pid, data.date_of_birth, data.birth_time, data.birth_am_pm, data.birth_place,
+         data.lagna_name, data.rasi_name, data.natchathiram, data.padam || null,
+         data.rasi_chart ? JSON.stringify(data.rasi_chart) : null,
+         data.navamsa_chart ? JSON.stringify(data.navamsa_chart) : null]
+      );
+      break;
+    case "expectations":
+      await query(
+        `INSERT INTO profile_expectations
+           (profile_id, age_range_min, age_range_max, height_range_min, height_range_max,
+            education_pref, employment_pref, income_pref, location_pref, minimum_poruthams, custom_note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (profile_id) DO UPDATE SET
+           age_range_min=$2, age_range_max=$3, height_range_min=$4, height_range_max=$5,
+           education_pref=$6, employment_pref=$7, income_pref=$8, location_pref=$9,
+           minimum_poruthams=$10, custom_note=$11, updated_at=NOW()`,
+        [pid, data.age_range_min || null, data.age_range_max || null,
+         data.height_range_min || null, data.height_range_max || null,
+         data.education_pref, data.employment_pref || [],
+         data.income_pref || null, data.location_pref || [],
+         data.minimum_poruthams || 6, data.custom_note]
+      );
+      break;
+    default:
+      return res.status(400).json({ error: true, message: "Unknown section" });
+  }
+
+  res.json({ message: "Profile updated" });
+});
+
+// POST /api/profile/:id/photo — upload photo for user's own profile
+router.post("/:id/photo", authenticate, upload.single("photo"), async (req: AuthRequest, res: Response) => {
+  const pid = req.params.id;
+  // Ownership check (Admins bypass)
+  if (req.role !== "admin") {
+    const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [pid, req.userId]);
+    if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+  }
+
+  if (!req.file) throw new AppError("No file uploaded", 400);
+
+  const photoCount = await query("SELECT COUNT(*) FROM profile_photos WHERE profile_id = $1", [pid]);
+  if (parseInt(photoCount.rows[0].count) >= 5) throw new AppError("Maximum 5 photos allowed", 400);
+
+  const isPrimary = parseInt(photoCount.rows[0].count) === 0;
+  const result = await query(
+    `INSERT INTO profile_photos (profile_id, url, is_primary, blur_for_basic, sort_order)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [pid, `/uploads/${req.file.filename}`, isPrimary, false, parseInt(photoCount.rows[0].count)]
+  );
+  res.status(201).json(result.rows[0]);
+});
+
+// DELETE /api/profile/:id/photo/:photoId
+router.delete("/:id/photo/:photoId", authenticate, async (req: AuthRequest, res: Response) => {
+  const pid = req.params.id;
+  // Ownership check (Admins bypass)
+  if (req.role !== "admin") {
+    const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [pid, req.userId]);
+    if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+  }
+
+  await query("DELETE FROM profile_photos WHERE id = $1 AND profile_id = $2", [req.params.photoId, pid]);
+  res.json({ message: "Photo deleted" });
+});
+
+// PUT /api/profile/:id/photo/:photoId/primary
+router.put("/:id/photo/:photoId/primary", authenticate, async (req: AuthRequest, res: Response) => {
+  const pid = req.params.id;
+  // Ownership check (Admins bypass)
+  if (req.role !== "admin") {
+    const check = await query("SELECT id FROM profiles WHERE id = $1 AND user_id = $2", [pid, req.userId]);
+    if (!check.rows[0]) throw new AppError("Profile not found or access denied", 403);
+  }
+
+  await query("UPDATE profile_photos SET is_primary = false WHERE profile_id = $1", [pid]);
+  await query("UPDATE profile_photos SET is_primary = true WHERE id = $1 AND profile_id = $2", [req.params.photoId, pid]);
+  res.json({ message: "Primary updated" });
 });
 
 export default router;

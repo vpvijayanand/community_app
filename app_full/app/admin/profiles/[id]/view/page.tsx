@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Printer, MapPin, Briefcase, BookOpen, Heart, Star, User, Lock } from "lucide-react"
+import { ArrowLeft, Printer, MapPin, Briefcase, BookOpen, Heart, Star, User, Lock, PencilLine } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/api"
 import { KoduGrid } from "@/components/kodu-grid"
 import { convertChartToPositions } from "@/lib/astrology-utils"
@@ -232,9 +233,19 @@ export default function BiodataViewPage() {
 
       {/* Nav — hidden in print */}
       <div className="no-print fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur px-6 py-3">
-        <Link href={`/admin/profiles/${profileId}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Edit
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href={`/admin/profiles/${profileId}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Back to Editor
+          </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push(`/admin/profiles/${profileId}`)}
+            className="h-8 border-primary/40 text-primary hover:bg-primary/5 hidden sm:flex items-center gap-1.5"
+          >
+            <PencilLine className="h-3.5 w-3.5" /> Edit Profile
+          </Button>
+        </div>
         <div className="flex items-center gap-2">
           {profileCode && (
             <span className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">{profileCode}</span>

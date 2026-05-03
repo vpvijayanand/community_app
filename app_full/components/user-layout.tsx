@@ -72,6 +72,18 @@ export function UserLayout({ children, title }: Props) {
           </Link>
         )
       })}
+      {user?.role === "admin" && (
+        <Link
+          href="/admin"
+          className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 transition border border-transparent hover:border-primary/20 mt-4 bg-primary/5"
+        >
+          <Settings className="h-4 w-4 shrink-0" />
+          <span className="flex flex-col leading-tight">
+            <span>Admin Panel</span>
+            <span className="font-tamil text-[10px] opacity-70">நிர்வாகம்</span>
+          </span>
+        </Link>
+      )}
     </>
   )
 

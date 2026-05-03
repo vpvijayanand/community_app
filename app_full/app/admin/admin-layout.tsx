@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin",                   label: "Dashboard"      },
   { href: "/admin/users",             label: "Users"          },
   { href: "/admin/profiles",          label: "Approvals"      },
+  { href: "/matches",                 label: "Browse Matches" },
   { href: "/admin/astrology",         label: "Astrology ✦"    },
   { href: "/admin/astrology/history", label: "  ↳ History"    },
   { href: "/admin/astrology/deleted", label: "  ↳ Deleted"    },
