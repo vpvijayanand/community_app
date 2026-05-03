@@ -3,8 +3,7 @@
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { AstrologyChartResult } from "@/components/astrology/astrology-chart-result"
 import { DetailedPredictionView } from "@/components/astrology/detailed-prediction-view"
 import { AstrologyChartPrintView } from "@/components/astrology/astrology-print-view"
@@ -122,23 +121,20 @@ export default function AstrologyChartDetailPage({ params }: { params: Promise<{
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <SiteHeader />
+      <UserLayout>
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-2">
             <span className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <p className="text-sm text-muted-foreground">Loading chart...</p>
           </div>
         </main>
-        <SiteFooter />
-      </div>
+      </UserLayout>
     )
   }
 
   if (error || !chart) {
     return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <SiteHeader />
+      <UserLayout>
         <main className="flex-1 flex items-center justify-center px-6">
           <div className="text-center max-w-sm">
             <h2 className="font-serif text-xl font-medium text-foreground">Chart not found</h2>
@@ -148,8 +144,7 @@ export default function AstrologyChartDetailPage({ params }: { params: Promise<{
             </Link>
           </div>
         </main>
-        <SiteFooter />
-      </div>
+      </UserLayout>
     )
   }
 
@@ -166,8 +161,7 @@ export default function AstrologyChartDetailPage({ params }: { params: Promise<{
       )}
 
       {/* ── Screen View (hidden on print) ── */}
-      <div className="flex min-h-screen flex-col bg-background print:hidden">
-        <SiteHeader />
+      <UserLayout>
         <main className="flex-1">
           <section className="border-b border-border/60 bg-secondary/30">
             <div className="mx-auto max-w-7xl px-6 py-8">
@@ -265,8 +259,7 @@ export default function AstrologyChartDetailPage({ params }: { params: Promise<{
             )}
           </section>
         </main>
-        <SiteFooter />
-      </div>
+      </UserLayout>
 
       {/* ── Print View (only visible on print) ── */}
       <div className="hidden print:block">

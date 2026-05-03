@@ -198,7 +198,7 @@ export default function DashboardPage() {
                     variant="outline"
                     size="sm"
                     className="mt-auto w-full group-hover:border-primary group-hover:text-primary"
-                    onClick={() => router.push(`/profile/me/view`)}
+                    onClick={() => router.push(`/profile/${profile.id}/view`)}
                   >
                     View Profile <ChevronRight className="ml-1 h-3.5 w-3.5" />
                   </Button>
@@ -213,7 +213,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         className="flex-1 group-hover:border-primary group-hover:text-primary"
-                        onClick={() => router.push(`/profile/me/view`)}
+                        onClick={() => router.push(`/profile/${profile.id}/view`)}
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" /> View
                       </Button>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => router.push(`/profile/me/edit`)}
+                        onClick={() => router.push(`/profile/${profile.id}/edit`)}
                       >
                         Edit Profile
                       </Button>

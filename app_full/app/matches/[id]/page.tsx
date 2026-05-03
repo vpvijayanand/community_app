@@ -185,6 +185,7 @@ export default function MatchDetailPage() {
             {profile.photos && profile.photos.length > 1 && (
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {profile.photos.slice(1, 4).map((ph) => {
+                  if (!ph.url) return null;
                   const url = ph.url.startsWith("/uploads/") || ph.url.startsWith("uploads/")
                     ? `${API_BASE}/${ph.url.replace(/^\//, "")}`
                     : ph.url

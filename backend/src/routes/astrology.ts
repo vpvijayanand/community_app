@@ -76,7 +76,7 @@ router.get('/charts/:id', authenticate, async (req: AuthRequest, res: Response, 
   try {
     const { id } = req.params;
 
-    if (!isValidUUID(id)) {
+    if (!isValidUUID(id as string)) {
       throw new AppError('Invalid chart ID', 400);
     }
 
@@ -106,7 +106,7 @@ router.delete('/charts/:id', authenticate, async (req: AuthRequest, res: Respons
   try {
     const { id } = req.params;
 
-    if (!isValidUUID(id)) {
+    if (!isValidUUID(id as string)) {
       throw new AppError('Invalid chart ID', 400);
     }
 

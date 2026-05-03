@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { SiteHeader } from "@/components/site-header"
+import { UserLayout } from "@/components/user-layout"
 import { ChatSubscriptionGate } from "@/components/chat/chat-subscription-gate"
 import { ChatLimitBanner } from "@/components/chat/chat-limit-banner"
 import { ConversationList } from "@/components/chat/conversation-list"
@@ -34,12 +34,10 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
   const { userId } = await params
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <SiteHeader />
-
+    <UserLayout title="Messages">
       <div
         className="relative flex flex-1 overflow-hidden"
-        style={{ height: "calc(100dvh - 64px)" }}
+        style={{ height: "calc(100dvh - 120px)" }}
       >
         {isBasicUser ? (
           <ChatSubscriptionGate />
@@ -73,6 +71,6 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
           </>
         )}
       </div>
-    </div>
+    </UserLayout>
   )
 }

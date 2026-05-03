@@ -1,17 +1,11 @@
 import { Router, Response } from "express";
-import multer from "multer";
-import path from "path";
-import { v4 as uuid } from "uuid";
 import { query } from "../db/pool";
 import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
+import { upload } from "../middleware/upload";
+import { AppError } from "../middleware/error";
 
 const router = Router();
 router.use(authenticate, requireAdmin);
-
-import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
-import { upload } from "../middleware/upload";
-
-const router = Router();
 
 // GET /api/admin/stats
 router.get("/stats", async (_req, res) => {
@@ -171,7 +165,7 @@ router.put("/profiles/:id", async (req: AuthRequest, res: Response) => {
          marital_status=$6, mother_tongue=$7, religion=$8, height_cm=$9, weight_kg=$10,
          complexion=$11, food_preference=$12, body_type=$13, physical_disability=$14, updated_at=NOW()
          WHERE id=$1`,
-        [pid, data.full_name, data.full_name_tamil, data.date_of_birth, data.gender,
+        [pid, data.full_name, data.full_name_tamil, data.date_of_birth || null, data.gender,
          data.marital_status, data.mother_tongue, data.religion, data.height_cm || null, data.weight_kg || null,
          data.complexion, data.food_preference, data.body_type, data.physical_disability]
       );
@@ -208,9 +202,9 @@ router.put("/profiles/:id", async (req: AuthRequest, res: Response) => {
            (profile_id, date_of_birth, birth_time, birth_am_pm, birth_place, lagna_name, rasi_name, natchathiram, padam, rasi_chart, navamsa_chart)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (profile_id) DO UPDATE SET
-           birth_time=$3, birth_am_pm=$4, birth_place=$5, lagna_name=$6,
+           date_of_birth=$2, birth_time=$3, birth_am_pm=$4, birth_place=$5, lagna_name=$6,
            rasi_name=$7, natchathiram=$8, padam=$9, rasi_chart=$10, navamsa_chart=$11, updated_at=NOW()`,
-        [pid, data.date_of_birth, data.birth_time, data.birth_am_pm, data.birth_place,
+        [pid, data.date_of_birth || null, data.birth_time || null, data.birth_am_pm, data.birth_place,
          data.lagna_name, data.rasi_name, data.natchathiram, data.padam || null,
          data.rasi_chart ? JSON.stringify(data.rasi_chart) : null,
          data.navamsa_chart ? JSON.stringify(data.navamsa_chart) : null]

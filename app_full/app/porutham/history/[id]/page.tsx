@@ -2,8 +2,7 @@
 
 import { use, useEffect, useState } from "react"
 import Link from "next/link"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { getPoruthamMatch, type MatchDetail } from "@/lib/porutham-api"
 import { ArrowLeft, Printer, History } from "lucide-react"
 
@@ -39,14 +38,12 @@ export default function PoruthamHistoryDetailPage({ params }: { params: Promise<
   if (isLoading) return <div className="flex justify-center p-20 animate-pulse text-muted-foreground">Loading match details...</div>
   
   if (error || !match) return (
-    <>
-      <SiteHeader />
-      <div className="flex flex-col items-center justify-center p-20 text-center gap-4 min-h-[60vh] bg-background">
+    <UserLayout>
+      <div className="flex flex-col items-center justify-center p-20 text-center gap-4 flex-1">
         <p className="text-red-500 font-medium">{error || "Something went wrong."}</p>
         <Link href="/porutham/history" className="text-primary hover:underline">← Back to History</Link>
       </div>
-      <SiteFooter />
-    </>
+    </UserLayout>
   )
 
   const resultItems = match.result_json.items || []
@@ -63,8 +60,8 @@ export default function PoruthamHistoryDetailPage({ params }: { params: Promise<
     <>
       {/* ── Normal Screen UI ── */}
       {!isPrintMode && (
-        <div className="min-h-screen bg-background flex flex-col no-print">
-          <SiteHeader />
+        <UserLayout>
+          <div className="flex-1 flex flex-col no-print">
           <div className="border-b border-border/60 bg-muted/30 px-6 py-6">
             <div className="mx-auto max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex flex-col gap-2">
@@ -89,8 +86,8 @@ export default function PoruthamHistoryDetailPage({ params }: { params: Promise<
                 </div>
              </div>
           </div>
-          <SiteFooter />
-        </div>
+          </div>
+        </UserLayout>
       )}
 
       {/* ── Print UI (Always present, revealed via @media print) ── */}

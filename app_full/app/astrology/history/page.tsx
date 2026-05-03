@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { listCharts, deleteChart, type ChartSummary } from "@/lib/astrology-api"
 import { History, Sparkles, ChevronRight, CalendarDays, MapPin, Trash2, AlertTriangle, X } from "lucide-react"
 
@@ -139,8 +138,7 @@ export default function AstrologyHistoryPage() {
         />
       )}
 
-      <div className="flex min-h-screen flex-col bg-background">
-        <SiteHeader />
+      <UserLayout>
         <main className="flex-1">
           {/* Header */}
           <section className="border-b border-border/60 bg-secondary/30">
@@ -280,8 +278,7 @@ export default function AstrologyHistoryPage() {
             )}
           </section>
         </main>
-        <SiteFooter />
-      </div>
+      </UserLayout>
     </>
   )
 }

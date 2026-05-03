@@ -332,7 +332,7 @@ export default function ProfileEditPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href={`/profile/me/view`}>
+            <Link href={`/profile/${profileId}/view`}>
               <Button variant="outline" size="sm" className="rounded-xl"><Eye className="mr-2 h-4 w-4" /> View as others</Button>
             </Link>
           </div>

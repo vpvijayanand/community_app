@@ -16,19 +16,22 @@ import {
   Sparkles,
   Menu,
   X,
+  History,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
 const USER_NAV = [
-  { href: "/dashboard",    label: "Dashboard",       labelTa: "முகப்பு",         icon: LayoutDashboard },
-  { href: "/matches",      label: "Browse Matches",  labelTa: "பொருத்தங்கள்",    icon: Heart },
-  { href: "/chat",         label: "Messages",        labelTa: "செய்திகள்",        icon: MessageCircle },
-  { href: "/porutham",     label: "Porutham",        labelTa: "பொருத்தம்",        icon: Sparkles },
-  { href: "/astrology",    label: "Astrology",       labelTa: "ஜோதிடம்",         icon: Star },
-  { href: "/news",         label: "Community",       labelTa: "சமூகம்",           icon: Newspaper },
-  { href: "/subscription", label: "Subscription",   labelTa: "சந்தா",            icon: Crown },
-  { href: "/settings",     label: "Settings",        labelTa: "அமைப்புகள்",       icon: Settings },
+  { href: "/dashboard",          label: "Dashboard",       labelTa: "முகப்பு",         icon: LayoutDashboard },
+  { href: "/matches",            label: "Browse Matches",  labelTa: "பொருத்தங்கள்",    icon: Heart },
+  { href: "/chat",               label: "Messages",        labelTa: "செய்திகள்",        icon: MessageCircle },
+  { href: "/porutham",           label: "Porutham",        labelTa: "பொருத்தம்",        icon: Sparkles },
+  { href: "/porutham/history",   label: "↳ History",       labelTa: "வரலாறு",          icon: History, isSub: true },
+  { href: "/astrology/chart",    label: "Astrology",       labelTa: "ஜோதிடம்",         icon: Star },
+  { href: "/astrology/history",  label: "↳ History",       labelTa: "வரலாறு",          icon: History, isSub: true },
+  { href: "/news",               label: "Community",       labelTa: "சமூகம்",           icon: Newspaper },
+  { href: "/subscription",       label: "Subscription",    labelTa: "சந்தா",            icon: Crown },
+  { href: "/settings",           label: "Settings",        labelTa: "அமைப்புகள்",       icon: Settings },
 ]
 
 type Props = {
@@ -51,14 +54,15 @@ export function UserLayout({ children, title }: Props) {
 
   const NavLinks = () => (
     <>
-      {USER_NAV.map(({ href, label, labelTa, icon: Icon }) => {
+      {USER_NAV.map((item) => {
+        const { href, label, labelTa, icon: Icon, isSub } = item
         const isActive = pathname === href || (href !== "/dashboard" && pathname?.startsWith(href))
         return (
           <Link
             key={href}
             href={href}
             onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition ${
+            className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition ${isSub ? "ml-4 pl-2" : ""} ${
               isActive
                 ? "bg-primary/10 text-primary border border-primary/20"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"

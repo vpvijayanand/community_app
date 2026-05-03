@@ -2,8 +2,7 @@
 
 import { useEffect, useState, use } from "react"
 import Link from "next/link"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { listPoruthamHistory, type MatchHistoryListResponse } from "@/lib/porutham-api"
 import { ArrowLeft, Clock, Search, ChevronLeft, ChevronRight, Star } from "lucide-react"
 
@@ -25,9 +24,8 @@ export default function PoruthamHistoryPage() {
   })
 
   return (
-    <>
-      <SiteHeader />
-      <main className="min-h-screen bg-background">
+    <UserLayout>
+      <main className="flex-1">
         <div className="border-b border-border/60 bg-gradient-to-br from-primary/5 via-background to-amber-50/30 px-6 py-10">
           <div className="mx-auto max-w-5xl">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -142,7 +140,6 @@ export default function PoruthamHistoryPage() {
           )}
         </div>
       </main>
-      <SiteFooter />
-    </>
+    </UserLayout>
   )
 }

@@ -67,8 +67,11 @@ const DEFAULT: Filters = {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function photoUrl(p: ApiProfile) {
-  if (!p.photo) return p.gender === "female" ? "/avatar-female.png" : "/avatar-male.png"
+function photoUrl(p: ApiProfile, filterGender: string = "") {
+  if (!p.photo) {
+    const gender = p.gender || filterGender || "male"
+    return gender === "female" ? "/avatar-female.png" : "/avatar-male.png"
+  }
   if (p.photo.startsWith("/uploads/") || p.photo.startsWith("uploads/"))
     return `${API}/${p.photo.replace(/^\//, "")}`
   return p.photo
@@ -90,8 +93,8 @@ function fmtCurrency(val: number | null) {
 }
 
 // ── Profile card ──────────────────────────────────────────────────────────────
-const ProfileCard = memo(function ProfileCard({ p }: { p: ApiProfile }) {
-  const url = photoUrl(p)
+const ProfileCard = memo(function ProfileCard({ p, filterGender }: { p: ApiProfile; filterGender?: string }) {
+  const url = photoUrl(p, filterGender || "")
   const isPremium = p.subscription_tier === "gold" || p.subscription_tier === "platinum"
   const score = p.completeness_score ?? 0
   const scoreColor = score >= 80 ? "bg-primary text-primary-foreground" : score >= 60 ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
@@ -197,7 +200,7 @@ function FilterSelect({ label, value, options, placeholder, onChange }: {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="_all">All (No Restriction)</SelectItem>
-          {options.map(o => <SelectItem key={o} value={o}>{fmtLabel(o)}</SelectItem>)}
+          {options.filter(Boolean).map(o => <SelectItem key={o} value={o}>{fmtLabel(o)}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>
@@ -519,7 +522,7 @@ export default function MatchesPage() {
             ) : (
               <div className="space-y-12">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                  {profiles.map(p => <ProfileCard key={p.id} p={p} />)}
+                  {profiles.map(p => <ProfileCard key={p.id} p={p} filterGender={filters.gender} />)}
                 </div>
                 
                 {page < totalPages && (

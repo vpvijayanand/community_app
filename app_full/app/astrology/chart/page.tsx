@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { UserLayout } from "@/components/user-layout"
 import { AstrologyChartForm, type FormValues } from "@/components/astrology/astrology-chart-form"
 import { AstrologyChartResult } from "@/components/astrology/astrology-chart-result"
 import { calcJyotishChart, type JyotishResult } from "@/lib/jyotish-calc"
@@ -62,10 +61,8 @@ export default function AstrologyChartPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <SiteHeader />
-
-      <main className="flex-1">
+    <UserLayout>
+      <div className="flex-1">
         {/* ── Page Header ── */}
         <section className="border-b border-border/60 bg-secondary/30">
           <div className="mx-auto w-full max-w-7xl px-6 py-10">
@@ -167,9 +164,7 @@ export default function AstrologyChartPage() {
             </div>
           </div>
         </section>
-      </main>
-
-      <SiteFooter />
-    </div>
+      </div>
+    </UserLayout>
   )
 }
